@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Warehouse Monitoring</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .sidebar {
+            width: 250px;
+            min-height: 100vh;
+            background-color: #1a202c; /* Dark blue-gray */
+            color: #e2e8f0; /* Light text */
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2); /* Deeper shadow */
+            transition: width 0.3s ease;
+            position: sticky; /* Sticky sidebar */
+            top: 0;
+            left: 0;
+            z-index: 50; /* Ensure it's above other content */
+        }
+        .sidebar.collapsed {
+            width: 80px; /* Collapsed width */
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        .sidebar-item:hover {
+            background-color: #2d3748; /* Slightly lighter dark */
+            color: #ffffff;
+            transform: translateX(5px); /* Slight hover effect */
+        }
+        .sidebar-item.active {
+            background-color: #4299e1; /* Blue accent */
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(66, 153, 225, 0.3); /* Blue shadow */
+        }
+        .sidebar-item i {
+            margin-right: 1rem;
+            font-size: 1.25rem;
+            width: 20px; /* Fixed width for icon */
+            text-align: center;
+        }
+        .sidebar.collapsed .sidebar-item span {
+            display: none; /* Hide text when collapsed */
+        }
+        .sidebar.collapsed .sidebar-item i {
+            margin-right: 0;
+            width: 100%;
+        }
+        .content-area {
+            flex-grow: 1;
+            padding: 2rem;
+            background-color: #f3f4f6;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1); /* Deeper shadow */
+            padding: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-3px); /* Slight lift on hover */
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.75rem; /* Rounded corners for table container */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px; /* Ensure table is wide enough for content */
+        }
+        th, td {
+            padding: 1rem; /* More padding */
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background-color: #edf2f7; /* Lighter header background */
+            font-weight: 600;
+            color: #4a5568;
+            text-transform: uppercase; /* Uppercase headers */
+            font-size: 0.875rem; /* Slightly smaller font */
+        }
+        td {
+            color: #2d3748; /* Darker text for data */
+        }
+        .btn {
+            padding: 0.75rem 1.5rem; /* Larger buttons */
+            border-radius: 0.75rem; /* More rounded */
+            font-weight: 600; /* Bolder text */
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .btn-primary {
+            background-color: #4299e1;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #3182ce;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .btn-secondary {
+            background-color: #cbd5e0;
+            color: #4a5568;
+        }
+        .btn-secondary:hover {
+            background-color: #a0aec0;
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Darker overlay */
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px); /* Blur background */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2.5rem; /* More padding */
+            border-radius: 1rem; /* More rounded */
+            width: 90%;
+            max-width: 550px; /* Slightly wider */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4); /* Stronger shadow */
+            position: relative;
+            animation: fadeIn 0.3s ease-out; /* Fade in animation */
+        }
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 2rem; /* Larger close button */
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4299e1;
+            animation: spin 1s ease infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                min-height: auto;
+                height: auto;
+                position: relative; /* Not sticky on mobile */
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                padding: 1rem;
+            }
+            .sidebar.collapsed {
+                width: 100%; /* No collapse effect on mobile, just full width */
+            }
+            .sidebar-item {
+                justify-content: center; /* Center items on mobile */
+                padding: 0.5rem;
+            }
+            .sidebar-item span {
+                display: block !important; /* Always show text on mobile */
+                margin-left: 0.5rem;
+            }
+            .sidebar-item i {
+                margin-right: 0.5rem;
+            }
+            .sidebar-item:hover {
+                transform: none; /* No transform on mobile */
+            }
+            .content-area {
+                padding: 1rem;
+            }
+            /* On mobile, all cards stack */
+            .grid-cols-1.md:grid-cols-2.lg:grid-cols-2 {
+                grid-template-columns: 1fr; /* Stack cards on mobile */
+            }
+            .modal-content {
+                width: 95%;
+                padding: 1.5rem;
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #sidebar-toggle {
+                align-self: flex-end;
+                margin-top: -30px; /* Adjust position */
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen">
+
+    <!-- Login Page -->
+    <div id="login-page" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96 max-w-sm">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Login Admin</h2>
+            <div id="login-error" class="text-red-500 text-sm mb-4 text-center hidden"></div>
+            <div class="mb-4">
+                <label for="email" class="block text-gray-700 text-sm font-semibold mb-2">Email</label>
+                <input type="email" id="email" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="admin@example.com">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                <input type="password" id="password" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="admin217">
+            </div>
+            <button id="login-button" class="btn btn-primary w-full py-2 text-lg">Login</button>
+        </div>
+    </div>
+
+    <!-- Main Application Layout -->
+    <div id="main-app" class="flex flex-grow hidden flex-col md:flex-row">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <div class="text-2xl font-bold mb-8 text-center flex items-center justify-center">
+                <i class="fas fa-warehouse text-blue-400"></i>
+                <span class="ml-2 sidebar-title">Smart Warehouse</span>
+            </div>
+            <nav>
+                <div id="nav-dashboard" class="sidebar-item active" data-page="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div id="nav-data" class="sidebar-item" data-page="data">
+                    <i class="fas fa-table"></i>
+                    <span>Data Barang</span>
+                </div>
+                <div id="nav-logout" class="sidebar-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <header class="flex justify-between items-center mb-8">
+                <h1 id="page-title" class="text-3xl font-bold text-gray-800">Dashboard</h1>
+                <button id="sidebar-toggle" class="text-gray-600 hover:text-gray-800 focus:outline-none md:hidden">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div id="dashboard-content" class="page-content">
+                <!-- Changed grid layout for dashboard cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="card md:col-span-1 lg:col-span-1">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Kondisi Lingkungan Real-time</h3>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-thermometer-half text-red-500 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Suhu: <span id="dashboard-temp" class="font-bold">N/A</span> °C</p>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-tint text-blue-500 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Kelembaban: <span id="dashboard-humidity" class="font-bold">N/A</span> %</p>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-sun text-yellow-500 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Cahaya: <span id="dashboard-light" class="font-bold">N/A</span> Lux</p>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-fan text-gray-600 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Kipas: <span id="dashboard-fan-status" class="font-bold">N/A</span></p>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-cogs text-gray-600 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Mode Kipas: <span id="dashboard-fan-mode" class="font-bold">N/A</span></p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <h4 class="font-semibold text-gray-700 mb-2">Kontrol Kipas</h4>
+                            <div class="flex flex-wrap gap-3">
+                                <button id="btn-mode-auto" class="btn btn-primary flex-1 min-w-[120px]">Mode Auto</button>
+                                <button id="btn-mode-manual" class="btn btn-secondary flex-1 min-w-[120px]">Mode Manual</button>
+                            </div>
+                            <div id="manual-control-div" class="mt-4 hidden">
+                                <div class="flex flex-wrap gap-3">
+                                    <button id="btn-fan-on" class="btn btn-primary flex-1 min-w-[120px]"><i class="fas fa-power-off mr-2"></i>Kipas ON</button>
+                                    <button id="btn-fan-off" class="btn btn-danger flex-1 min-w-[120px]"><i class="fas fa-times-circle mr-2"></i>Kipas OFF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card md:col-span-1 lg:col-span-1">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Jumlah Barang Berdasarkan Jenis</h3>
+                        <div id="item-counts" class="space-y-2">
+                            <p class="text-gray-600">Memuat data...</p>
+                        </div>
+                    </div>
+
+                    <div class="card md:col-span-2 lg:col-span-2">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Status Sistem</h3>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-wifi text-green-500 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">WiFi: <span id="system-wifi-status" class="font-bold text-green-600">Terhubung</span></p>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-database text-blue-500 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Firebase: <span id="system-firebase-status" class="font-bold text-blue-600">Siap</span></p>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-clock text-purple-500 mr-3 text-2xl"></i>
+                            <p class="text-gray-800 text-lg">Waktu Terakhir Update: <span id="system-last-updated" class="font-bold">N/A</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Page Content -->
+            <div id="data-content" class="page-content hidden">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Data Barang di Gudang</h3>
+                    <div class="table-container">
+                        <table id="inventory-table" class="min-w-full bg-white">
+                            <thead>
+                                <tr>
+                                    <th>UID Kustom</th>
+                                    <th>Nama Barang</th>
+                                    <th>Waktu Masuk</th>
+                                    <th>Durasi Penyimpanan</th>
+                                    <th>Lokasi</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body">
+                                <!-- Data will be loaded here by JavaScript -->
+                                <tr><td colspan="6" class="text-center py-4 text-gray-500"><div class="spinner mx-auto"></div> Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Edit Location -->
+    <div id="edit-location-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Edit Lokasi Barang</h2>
+            <input type="hidden" id="modal-uid-custom">
+            <div class="mb-4">
+                <label for="modal-nama-barang" class="block text-gray-700 text-sm font-semibold mb-2">Nama Barang</label>
+                <input type="text" id="modal-nama-barang" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight focus:outline-none" readonly>
+            </div>
+            <div class="mb-4">
+                <label for="modal-lokasi-rak" class="block text-gray-700 text-sm font-semibold mb-2">Lokasi Rak</label>
+                <input type="text" id="modal-lokasi-rak" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="Contoh: A, B, C">
+            </div>
+            <div class="mb-6">
+                <label for="modal-lokasi-nomor" class="block text-gray-700 text-sm font-semibold mb-2">Nomor Lokasi</label>
+                <input type="text" id="modal-lokasi-nomor" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="Contoh: 1, 2, 3">
+            </div>
+            <button id="save-location-btn" class="btn btn-primary w-full py-2 text-lg">Simpan Lokasi</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcBdMZau38zENv-aGX7K22cI_Z81ytM8M",
+            authDomain: "cobadatabase-24919.firebaseapp.com",
+            databaseURL: "https://cobadatabase-24919-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "cobadatabase-24919",
+            storageBucket: "cobadatabase-24919.appspot.com",
+            messagingSenderId: "1044993779223",
+            appId: "1:1044993779223:web:abb7959ce7fd1e8c4de52",
+            measurementId: "G-CYZ51Z3FK4"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // --- DOM Elements ---
+        const loginPage = document.getElementById('login-page');
+        const mainApp = document.getElementById('main-app');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const loginError = document.getElementById('login-error');
+        const navDashboard = document.getElementById('nav-dashboard');
+        const navData = document.getElementById('nav-data');
+        const navLogout = document.getElementById('nav-logout');
+        const pageTitle = document.getElementById('page-title');
+        const dashboardContent = document.getElementById('dashboard-content');
+        const dataContent = document.getElementById('data-content');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarTitle = document.querySelector('.sidebar-title');
+
+
+        // Dashboard elements
+        const dashboardTemp = document.getElementById('dashboard-temp');
+        const dashboardHumidity = document.getElementById('dashboard-humidity');
+        const dashboardLight = document.getElementById('dashboard-light');
+        const dashboardFanStatus = document.getElementById('dashboard-fan-status');
+        const dashboardFanMode = document.getElementById('dashboard-fan-mode');
+        const btnModeAuto = document.getElementById('btn-mode-auto');
+        const btnModeManual = document.getElementById('btn-mode-manual');
+        const manualControlDiv = document.getElementById('manual-control-div');
+        const btnFanOn = document.getElementById('btn-fan-on');
+        const btnFanOff = document.getElementById('btn-fan-off');
+        const itemCountsDiv = document.getElementById('item-counts');
+        const systemWifiStatus = document.getElementById('system-wifi-status');
+        const systemFirebaseStatus = document.getElementById('system-firebase-status');
+        const systemLastUpdated = document.getElementById('system-last-updated');
+
+
+        // Data table elements
+        const inventoryTableBody = document.getElementById('inventory-table-body');
+        const editLocationModal = document.getElementById('edit-location-modal');
+        const closeModalBtn = document.querySelector('#edit-location-modal .close-button');
+        const modalUidCustom = document.getElementById('modal-uid-custom');
+        const modalNamaBarang = document.getElementById('modal-nama-barang');
+        const modalLokasiRak = document.getElementById('modal-lokasi-rak');
+        const modalLokasiNomor = document.getElementById('modal-lokasi-nomor');
+        const saveLocationBtn = document.getElementById('save-location-btn');
+
+        let currentActivePage = 'dashboard';
+
+        // --- Authentication State Listener ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                loginPage.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                loadPage(currentActivePage); // Load default page
+                setupRealtimeListeners(); // Start listening to Firebase data
+            } else {
+                loginPage.classList.remove('hidden');
+                mainApp.classList.add('hidden');
+            }
+        });
+
+        // --- Login Functionality ---
+        loginButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                loginError.classList.add('hidden');
+            } catch (error) {
+                loginError.textContent = `Login Gagal: ${error.message}`;
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        // --- Navigation Functionality ---
+        function loadPage(page) {
+            // Hide all content pages
+            dashboardContent.classList.add('hidden');
+            dataContent.classList.add('hidden');
+
+            // Deactivate all sidebar items
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected page and activate sidebar item
+            if (page === 'dashboard') {
+                dashboardContent.classList.remove('hidden');
+                navDashboard.classList.add('active');
+                pageTitle.textContent = 'Dashboard';
+            } else if (page === 'data') {
+                dataContent.classList.remove('hidden');
+                navData.classList.add('active');
+                pageTitle.textContent = 'Data Barang';
+                loadInventoryData(); // Load data when navigating to Data page
+            }
+            currentActivePage = page;
+        }
+
+        navDashboard.addEventListener('click', () => loadPage('dashboard'));
+        navData.addEventListener('click', () => loadPage('data'));
+        navLogout.addEventListener('click', async () => {
+            await auth.signOut();
+            // Clear inputs on logout
+            emailInput.value = '';
+            passwordInput.value = '';
+        });
+
+        // Sidebar toggle for mobile/desktop
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            sidebarTitle.classList.toggle('hidden'); // Hide title on collapse
+        });
+        // Hide sidebar title on desktop collapse
+        if (window.innerWidth > 768) {
+            sidebarTitle.classList.remove('hidden');
+        } else {
+            sidebarTitle.classList.add('hidden'); // Always hide on mobile initially
+        }
+
+
+        // --- Real-time Data Listeners (Dashboard) ---
+        function setupRealtimeListeners() {
+            // Listen for warehouse live data
+            database.ref('/warehouse_live_data').on('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    dashboardTemp.textContent = data.temperature ? data.temperature.toFixed(1) : 'N/A';
+                    dashboardHumidity.textContent = data.humidity ? data.humidity.toFixed(1) : 'N/A';
+                    dashboardLight.textContent = data.light_lux ? data.light_lux.toFixed(1) : 'N/A';
+                    dashboardFanStatus.textContent = data.fan_status || 'N/A';
+                    dashboardFanMode.textContent = data.fan_mode || 'N/A';
+                    systemLastUpdated.textContent = data.last_updated || 'N/A';
+
+                    // Update manual control visibility
+                    if (data.fan_mode === 'manual') {
+                        manualControlDiv.classList.remove('hidden');
+                        btnModeAuto.classList.remove('btn-primary');
+                        btnModeAuto.classList.add('btn-secondary');
+                        btnModeManual.classList.add('btn-primary');
+                        btnModeManual.classList.remove('btn-secondary');
+                    } else {
+                        manualControlDiv.classList.add('hidden');
+                        btnModeAuto.classList.add('btn-primary');
+                        btnModeAuto.classList.remove('btn-secondary');
+                        btnModeManual.classList.remove('btn-primary');
+                        btnModeManual.classList.add('btn-secondary');
+                    }
+                }
+            });
+
+            // Listen for item counts by type
+            database.ref('/current_inventory').on('value', snapshot => {
+                const inventory = snapshot.val();
+                const counts = {};
+                if (inventory) {
+                    for (const uid_custom in inventory) {
+                        const item = inventory[uid_custom];
+                        if (item.status === 'in_warehouse') { // Only count items still in warehouse
+                            const itemTypePrefix = item.uid_custom ? item.uid_custom.substring(0, 3).toUpperCase() : 'UNKNOWN'; // Get first 3 chars for type, ensure uppercase
+                            if (counts[itemTypePrefix]) {
+                                counts[itemTypePrefix]++;
+                            } else {
+                                counts[itemTypePrefix] = 1;
+                            }
+                        }
+                    }
+                }
+
+                itemCountsDiv.innerHTML = ''; // Clear previous counts
+                if (Object.keys(counts).length === 0) {
+                    itemCountsDiv.innerHTML = '<p class="text-gray-600">Tidak ada barang di gudang.</p>';
+                } else {
+                    for (const type in counts) {
+                        let displayName = type;
+                        if (type === 'KTG') displayName = 'Kentang';
+                        else if (type === 'UBI') displayName = 'Ubi Jalar';
+                        else if (type === 'SNG') displayName = 'Singkong';
+                        else displayName = `Tipe ${type}`; // Fallback for other types
+
+                        const p = document.createElement('p');
+                        p.className = 'text-gray-800 text-lg';
+                        p.innerHTML = `<i class="fas fa-box text-green-500 mr-3"></i>Jumlah ${displayName}: <span class="font-bold">${counts[type]}</span>`;
+                        itemCountsDiv.appendChild(p);
+                    }
+                }
+            });
+        }
+
+        // --- Fan Control from Web ---
+        btnModeAuto.addEventListener('click', () => {
+            database.ref('/fan_control').update({ mode: 'auto' })
+                .then(() => console.log('Mode kipas diatur ke Auto'))
+                .catch(error => console.error('Gagal mengatur mode kipas:', error));
+        });
+
+        btnModeManual.addEventListener('click', () => {
+            database.ref('/fan_control').update({ mode: 'manual' })
+                .then(() => console.log('Mode kipas diatur ke Manual'))
+                .catch(error => console.error('Gagal mengatur mode kipas:', error));
+        });
+
+        btnFanOn.addEventListener('click', () => {
+            database.ref('/fan_control').update({ manual_state: true })
+                .then(() => console.log('Kipas ON (Manual)'))
+                .catch(error => console.error('Gagal menyalakan kipas:', error));
+        });
+
+        btnFanOff.addEventListener('click', () => {
+            database.ref('/fan_control').update({ manual_state: false })
+                .then(() => console.log('Kipas OFF (Manual)'))
+                .catch(error => console.error('Gagal mematikan kipas:', error));
+        });
+
+
+        // --- Inventory Data Table ---
+        function loadInventoryData() {
+            inventoryTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500"><div class="spinner mx-auto"></div> Memuat data...</td></tr>';
+
+            database.ref('/current_inventory').on('value', snapshot => {
+                const inventory = snapshot.val();
+                inventoryTableBody.innerHTML = ''; // Clear table body
+
+                if (!inventory) {
+                    inventoryTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Tidak ada barang di gudang.</td></tr>';
+                    return;
+                }
+
+                let hasItems = false;
+                Object.keys(inventory).forEach(uid_custom_key => {
+                    const item = inventory[uid_custom_key];
+                    if (item.status !== 'in_warehouse') return; // Only show items currently in warehouse
+
+                    hasItems = true;
+                    const row = inventoryTableBody.insertRow();
+                    row.className = 'hover:bg-gray-50';
+
+                    // UID Kustom
+                    const cellUidCustom = row.insertCell();
+                    cellUidCustom.textContent = item.uid_custom || 'N/A';
+
+                    // Nama Barang
+                    const cellNamaBarang = row.insertCell();
+                    cellNamaBarang.textContent = item.nama_produk || 'N/A';
+
+                    // Waktu Masuk
+                    const cellWaktuMasuk = row.insertCell();
+                    cellWaktuMasuk.textContent = item.waktu_masuk || 'N/A';
+
+                    // Durasi Penyimpanan
+                    const cellDurasi = row.insertCell();
+                    if (item.waktu_masuk) {
+                        const masukDate = new Date(item.waktu_masuk);
+                        const now = new Date();
+                        const diffMs = now - masukDate;
+                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                        const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        cellDurasi.textContent = `${diffDays} hari, ${diffHours} jam, ${diffMinutes} menit`;
+                    } else {
+                        cellDurasi.textContent = 'N/A';
+                    }
+
+                    // Lokasi
+                    const cellLokasi = row.insertCell();
+                    const lokasiText = (item.lokasi_rak || '') + (item.lokasi_nomor ? ' - ' + item.lokasi_nomor : '');
+                    cellLokasi.textContent = lokasiText || 'Belum diinput';
+
+                    // Aksi
+                    const cellAksi = row.insertCell();
+                    cellAksi.className = 'flex flex-wrap gap-2'; // Use flex-wrap for small screens
+
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-primary btn-sm';
+                    editBtn.textContent = 'Edit Lokasi';
+                    editBtn.addEventListener('click', () => openEditModal(uid_custom_key, item));
+                    cellAksi.appendChild(editBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-danger btn-sm';
+                    deleteBtn.textContent = 'Hapus Barang';
+                    deleteBtn.addEventListener('click', () => deleteItem(uid_custom_key));
+                    cellAksi.appendChild(deleteBtn);
+                });
+
+                if (!hasItems) {
+                    inventoryTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Tidak ada barang di gudang.</td></tr>';
+                }
+            });
+        }
+
+        // --- Modal Functionality ---
+        function openEditModal(uid_custom_key, item) {
+            modalUidCustom.value = uid_custom_key;
+            modalNamaBarang.value = item.nama_produk || 'N/A';
+            modalLokasiRak.value = item.lokasi_rak || '';
+            modalLokasiNomor.value = item.lokasi_nomor || '';
+            editLocationModal.style.display = 'flex'; // Show modal
+        }
+
+        closeModalBtn.addEventListener('click', () => {
+            editLocationModal.style.display = 'none'; // Hide modal
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == editLocationModal) {
+                editLocationModal.style.display = 'none'; // Hide modal if click outside
+            }
+        });
+
+        saveLocationBtn.addEventListener('click', () => {
+            const uidToUpdate = modalUidCustom.value;
+            const newRak = modalLokasiRak.value;
+            const newNomor = modalLokasiNomor.value;
+
+            if (uidToUpdate) {
+                database.ref(`/current_inventory/${uidToUpdate}`).update({
+                    lokasi_rak: newRak,
+                    lokasi_nomor: newNomor
+                })
+                .then(() => {
+                    console.log('Lokasi berhasil diperbarui!');
+                    editLocationModal.style.display = 'none';
+                    // loadInventoryData() will be triggered by Firebase listener
+                })
+                .catch(error => {
+                    console.error('Gagal memperbarui lokasi:', error);
+                    alert('Gagal memperbarui lokasi: ' + error.message); // Use custom message box in real app
+                });
+            }
+        });
+
+        function deleteItem(uid_custom_key) {
+            // Use a custom confirmation modal instead of alert/confirm for better UX
+            const confirmation = confirm('Apakah Anda yakin ingin menghapus barang ini dari gudang? Ini akan menandainya sebagai sudah keluar.'); // Replace with custom modal later
+            if (confirmation) {
+                database.ref(`/current_inventory/${uid_custom_key}`).update({
+                    status: 'out_of_warehouse',
+                    waktu_keluar: new Date().toISOString() // Record exit time
+                })
+                .then(() => {
+                    console.log('Barang berhasil ditandai sebagai keluar gudang!');
+                    // loadInventoryData() will be triggered by Firebase listener
+                })
+                .catch(error => {
+                    console.error('Gagal menghapus barang:', error);
+                    alert('Gagal menghapus barang: ' + error.message); // Replace with custom message box later
+                });
+            }
+        }
+
+        // Initial load for login page
+        // The onAuthStateChanged listener will handle showing main app
+    </script>
+</body>
+</html>
